@@ -4,6 +4,8 @@ from app.config.rabbitmq_config import create_connection
 from app.messiging.producer import send_label
 from app.model.inference import SceneClassifier
 
+EXCHANGE = "photo_exchange"
+SERVICE_QUEUE = "scene_service_queue"
 
 classifier = SceneClassifier()
 
@@ -30,10 +32,21 @@ def start_consumer():
     connection = create_connection()
     channel = connection.channel()
 
-    channel.queue_declare(queue="scene_queue", durable=True)
+    channel.exchange_declare(
+        exchange=EXCHANGE,
+        exchange_type="fanout",
+        durable=True
+    )
+
+    channel.queue_declare(queue=SERVICE_QUEUE, durable=True)
+
+    channel.queue_bind(
+        exchange=EXCHANGE,
+        queue=SERVICE_QUEUE
+    )
 
     channel.basic_consume(
-        queue="scene_queue",
+        queue=SERVICE_QUEUE,
         on_message_callback=callback
     )
 
